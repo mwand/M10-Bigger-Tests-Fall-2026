@@ -1,0 +1,136 @@
+import { defineConfig, globalIgnores } from 'eslint/config';
+import eslint from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import eslintPluginImportX from 'eslint-plugin-import-x';
+
+export default defineConfig([
+  globalIgnores([
+    '**/build', // legacy output directory
+    '**/dist', // vite's output directory
+    '**/.stryker-tmp/', // stryker mutation reports
+    '**/coverage', // istanbul coverage reports
+    '**/playwright-report/', // playwright test reports
+    '*.config.*', //config files don't need to conform to lint rules
+  ]),
+  {
+    files: ['**/*.{js,mjs,cjs,ts,jsx,tsx}'],
+    extends: [
+      eslint.configs.recommended,
+      eslintPluginImportX.flatConfigs.recommended,
+      eslintPluginImportX.flatConfigs.typescript,
+    ],
+    settings: {
+      'import-x/resolver': { typescript: true },
+    },
+    rules: {
+      eqeqeq: 'error',
+      'import-x/no-amd': 'error',
+      'import-x/no-commonjs': 'error',
+      'import-x/no-empty-named-blocks': 'error',
+      'import-x/no-extraneous-dependencies': [
+        'error',
+        {
+          // devDependencies can be imported in config and test files
+          devDependencies: [
+            '**/*.config.mjs',
+            '**/*.{spec,test}.{ts,tsx}',
+            '**/tests/**/*.{ts,tsx}',
+          ],
+          includeInternal: true,
+        },
+      ],
+      'import-x/no-import-module-exports': 'error',
+      'import-x/no-named-as-default': 'error',
+      'import-x/no-named-as-default-member': 'off',
+      'no-console': 'off',
+      'no-param-reassign': 'error',
+      'no-throw-literal': 'error',
+      'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }],
+    },
+  },
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: tseslint.configs.recommendedTypeChecked,
+    languageOptions: { parserOptions: { projectService: true } },
+    rules: {
+      '@typescript-eslint/naming-convention': [
+        'error',
+        {
+          // Variables are camelCase: `nimGameService`, `row`
+          selector: ['variable'],
+          format: ['camelCase'],
+          leadingUnderscore: 'allow',
+        },
+        {
+          // Functions, methods, and members are too: `allGuessed`, `start`, `viewAs`, `isDone`
+          selector: ['function', 'method', 'memberLike'],
+          format: ['camelCase'],
+        },
+        {
+          // Types and class names are PascalCase: `GameService`, `NimState`
+          selector: 'typeLike',
+          format: ['PascalCase'],
+        },
+        // {
+        //   // Global constants are UPPER_CASE: `PORT`, `THREAD_API_URL`
+        //   // selector: "variable",
+        //   // modifiers: ["global", "const"],
+        //   // types: ["boolean", "number", "string", "array"],
+        //   // format: ["UPPER_CASE"],
+        // },
+        {
+          // Private methods and fields must have a leading underscore: this._count
+          selector: ['memberLike', 'method'],
+          modifiers: ['private'],
+          format: ['camelCase'],
+          leadingUnderscore: 'require',
+        },
+        {
+          // No limits on things like 'Content-Type' in a fetch object
+          selector: 'objectLiteralProperty',
+          modifiers: ['requiresQuotes'],
+          format: null,
+        },
+        {
+          // Usually we want to stick with camelCase for global variables, but
+          // some global items want to be PascalCase: `FooModel` in the server,
+          // `AuthContext` and `ThreadPage` in the frontend, `MockGameServer`
+          // in certain tests.
+          selector: ['function', 'variable'],
+          modifiers: ['global'],
+          format: ['camelCase', 'PascalCase'],
+        },
+      ],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { args: 'none', varsIgnorePattern: '^_', caughtErrors: 'none' },
+      ],
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        {
+          checksVoidReturn: {
+            arguments: false,
+            attributes: false,
+          },
+        },
+      ],
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      '@typescript-eslint/no-unsafe-member-access': ['error', { allowOptionalChaining: true }],
+    },
+  },
+  {
+    // Test files may need to make use of the `any` type in a way we want to
+    // prevent in normal code.
+    files: ['**/*.{spec,test}.{ts,tsx}', '**/tests'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+    },
+  },
+  {
+    extends: [eslintPluginPrettierRecommended],
+    rules: { 'prettier/prettier': 'warn' },
+  },
+]);
